@@ -54,6 +54,42 @@ def analyze_logs(entries):
 
     return results
 
+def generate_log_findings(results):
+    """Convert authentication events into structured findings."""
+
+    failures = (
+        results["failed_password"]
+        + results["authentication_failure"]
+        + results["invalid_user"]
+    )
+
+    total_failures = len(failures)
+
+    findings = []
+
+    if total_failures >= 10:
+        severity = "HIGH"
+
+    elif total_failures >= 5:
+        severity = "MEDIUM"
+
+    elif total_failures > 0:
+        severity = "LOW"
+
+    else:
+        return findings
+
+    findings.append({
+        "title": "Authentication failures detected",
+        "description": (
+            f"Detected {total_failures} authentication failure events. "
+            "Investigate the source and affected accounts."
+        ),
+        "severity": severity,
+        "category": "Authentication"
+    })
+
+    return findings
 
 def extract_ip_addresses(events):
     """Extract IPv4 addresses from event messages."""
@@ -118,6 +154,7 @@ def display_report(results):
 
 
 def run_log_analysis():
+    """Run authentication log analysis and return audit evidence."""
 
     print("=" * 50)
     print("       LINUX AUTHENTICATION LOG ANALYZER")
@@ -125,17 +162,39 @@ def run_log_analysis():
 
     entries = read_auth_logs()
 
-    if not entries:
-        print("No log entries available.")
-        return
-
     print(f"Total log entries read: {len(entries)}")
 
     results = analyze_logs(entries)
 
     display_report(results)
 
+    findings = generate_log_findings(results)
+
+    failures = (
+        results["failed_password"]
+        + results["authentication_failure"]
+        + results["invalid_user"]
+    )
+
+    ip_counts = extract_ip_addresses(failures)
+
+    audit_data = {
+        "total_log_entries": len(entries),
+        "failed_password_count": len(results["failed_password"]),
+        "authentication_failure_count": len(
+            results["authentication_failure"]
+        ),
+        "invalid_user_count": len(results["invalid_user"]),
+        "successful_sudo_sessions": len(results["sudo_sessions"]),
+        "source_ip_counts": dict(ip_counts),
+        "findings": findings,
+        "log_available": bool(entries)
+    }
+
+    print(f"\nStructured findings generated: {len(findings)}")
     print("\nLOG ANALYSIS COMPLETED")
+
+    return audit_data
 
 
 if __name__ == "__main__":

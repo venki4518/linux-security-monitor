@@ -52,28 +52,50 @@ def get_memory_info():
 
 
 def run_system_audit():
-    """Collect basic Linux system information."""
+    """Collect and return basic Linux system information."""
 
     print("=" * 50)
     print("       LINUX SYSTEM SECURITY AUDIT")
     print("=" * 50)
 
-    print(f"Operating System : {get_os_info()}")
-    print(f"Hostname         : {platform.node()}")
-    print(f"Current User     : {getpass.getuser()}")
-    print(f"Kernel Version   : {platform.release()}")
-    print(f"Architecture     : {platform.machine()}")
-    print(f"System Uptime    : {get_uptime()}")
+    os_info = get_os_info()
+    hostname = platform.node()
+    current_user = getpass.getuser()
+    kernel = platform.release()
+    architecture = platform.machine()
+    uptime = get_uptime()
 
     disk = shutil.disk_usage("/")
+    memory = get_memory_info()
+
+    # Store collected information in a dictionary.
+    system_data = {
+        "operating_system": os_info,
+        "hostname": hostname,
+        "current_user": current_user,
+        "kernel_version": kernel,
+        "architecture": architecture,
+        "uptime": uptime,
+        "disk": {
+            "total_gb": round(disk.total / (1024**3), 2),
+            "used_gb": round(disk.used / (1024**3), 2),
+            "free_gb": round(disk.free / (1024**3), 2)
+        },
+        "memory": memory
+    }
+
+    print(f"Operating System : {os_info}")
+    print(f"Hostname         : {hostname}")
+    print(f"Current User     : {current_user}")
+    print(f"Kernel Version   : {kernel}")
+    print(f"Architecture     : {architecture}")
+    print(f"System Uptime    : {uptime}")
 
     print("\nDISK INFORMATION")
     print("-" * 50)
-    print(f"Total Disk       : {disk.total / (1024**3):.2f} GB")
-    print(f"Used Disk        : {disk.used / (1024**3):.2f} GB")
-    print(f"Free Disk        : {disk.free / (1024**3):.2f} GB")
-
-    memory = get_memory_info()
+    print(f"Total Disk       : {system_data['disk']['total_gb']} GB")
+    print(f"Used Disk        : {system_data['disk']['used_gb']} GB")
+    print(f"Free Disk        : {system_data['disk']['free_gb']} GB")
 
     print("\nMEMORY INFORMATION")
     print("-" * 50)
@@ -89,6 +111,7 @@ def run_system_audit():
     print("SYSTEM AUDIT COMPLETED")
     print("=" * 50)
 
+    return system_data
 
 if __name__ == "__main__":
     run_system_audit()

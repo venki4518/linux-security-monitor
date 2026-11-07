@@ -14,6 +14,8 @@ def run_command(command):
 
         if result.returncode != 0:
             print(f"Command returned code: {result.returncode}")
+            if result.stderr:
+                print(result.stderr.strip())
 
         return result.stdout
 
@@ -23,49 +25,69 @@ def run_command(command):
 
 
 def get_running_services():
-    """Retrieve currently running services."""
-
     output = run_command([
-        "systemctl",
-        "list-units",
-        "--type=service",
-        "--state=running",
-        "--no-legend",
-        "--no-pager"
+        "systemctl", "list-units",
+        "--type=service", "--state=running",
+        "--no-legend", "--no-pager"
     ])
 
-    return [line.strip() for line in output.splitlines() if line.strip()]
+    return [
+        line.strip()
+        for line in output.splitlines()
+        if line.strip() and line.split()[0].endswith(".service")
+    ]
 
 
 def get_failed_services():
-    """Retrieve failed systemd services."""
-
     output = run_command([
-        "systemctl",
-        "--failed",
-        "--no-legend",
-        "--no-pager"
+        "systemctl", "--failed",
+        "--no-legend", "--no-pager"
     ])
 
-    return [line.strip() for line in output.splitlines() if line.strip()]
+    return [
+        line.strip()
+        for line in output.splitlines()
+        if line.strip() and line.split()[0].endswith(".service")
+    ]
 
 
 def get_enabled_services():
-    """Retrieve enabled service definitions."""
-
     output = run_command([
-        "systemctl",
-        "list-unit-files",
-        "--type=service",
-        "--state=enabled",
-        "--no-legend",
-        "--no-pager"
+        "systemctl", "list-unit-files",
+        "--type=service", "--state=enabled",
+        "--no-legend", "--no-pager"
     ])
 
-    return [line.strip() for line in output.splitlines() if line.strip()]
+    return [
+        line.strip()
+        for line in output.splitlines()
+        if line.strip() and line.split()[0].endswith(".service")
+    ]
+
+
+def generate_service_findings(failed):
+    """Convert failed services into structured findings."""
+
+    findings = []
+
+    for service in failed:
+        service_name = service.split()[0]
+
+        findings.append({
+            "title": "Failed system service detected",
+            "description": (
+                f"The service {service_name} is in a failed state. "
+                "Investigate its logs and determine the cause."
+            ),
+            "severity": "MEDIUM",
+            "category": "Service Monitoring"
+        })
+
+    return findings
 
 
 def run_service_audit():
+    """Run service audit and return evidence and findings."""
 
     print("=" * 55)
     print("          LINUX SERVICE SECURITY AUDIT")
@@ -94,7 +116,20 @@ def run_service_audit():
     else:
         print("No failed services detected.")
 
+    findings = generate_service_findings(failed)
+
+    print(f"\nService security findings generated: {len(findings)}")
     print("\nSERVICE AUDIT COMPLETED")
+
+    return {
+        "running_services_count": len(running),
+        "running_services": running,
+        "failed_services_count": len(failed),
+        "failed_services": failed,
+        "enabled_services_count": len(enabled),
+        "enabled_services": enabled,
+        "findings": findings
+    }
 
 
 if __name__ == "__main__":

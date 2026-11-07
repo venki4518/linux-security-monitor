@@ -5,14 +5,18 @@ __pycache__/
 # Virtual environment
 .venv/
 
-# Environment variables and secrets
+# Test and coverage files
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Environment variables
 .env
 .env.*
 
 # Generated reports and logs
 reports/*
 logs/*
-
-# Keep directory structure
 !reports/.gitkeep
 !logs/.gitkeep
